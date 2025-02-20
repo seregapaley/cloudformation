@@ -37,9 +37,9 @@ Parameters:
       - 10.0.3.0/24
       - 10.0.4.0/20    
       
-  #IS3Bucket:
-    #Type: String
-    #Description: Enter s3 Bucket name
+   IS3Bucket:
+    Type: String
+    Description: Enter s3 Bucket name
     
 Resources:
    TestEC2:
@@ -67,10 +67,10 @@ Resources:
          Tags:
          - Key: stack
            Value: production   
-   #TestS3:
-      #Type: AWS::S3::Bucket
-      #Properties:
-         #BucketName: !Ref IS3Bucket
+    TestS3:
+       Type: AWS::S3::Bucket
+       Properties:
+         BucketName: !Ref IS3Bucket
     
    TestVPC:     
        Type: AWS::EC2::VPC
