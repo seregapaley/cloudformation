@@ -1,0 +1,197 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: This template for creation EC2,S3,VPC,Pubsab,Privetsub.
+
+Parameters:
+  EC2InstanceID:
+    Description: Enter ID, 
+    Type: String
+    Default: ami-04b4f1a9cf54c11d0
+    AllowedValues:
+      - ami-04b4f1a9cf54c11d0
+  EC2InstanceType:
+    Description: Enter t2.micro, 
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro      
+  VPCCIDR:
+    Description: Enter cidrblock, 
+    Type: String
+    Default: 10.0.0.0/16
+    AllowedValues:
+      - 10.0.0.0/16
+      - 10.0.0.0/24 
+  VPCSUB:
+    Description: Enter subnets, Pub(10.0.2.0/24) 
+    Type: String
+    Default: 10.0.2.0/24
+    AllowedValues:
+      - 10.0.2.0/24
+      - 10.0.1.0/20 
+
+  VPCSUBPrivet:
+    Description: Enter subnets, Privet (10.0.3.0/24)
+    Type: String
+    Default: 10.0.3.0/24
+    AllowedValues:
+      - 10.0.3.0/24
+      - 10.0.4.0/20    
+      
+  #IS3Bucket:
+    #Type: String
+    #Description: Enter s3 Bucket name
+    
+Resources:
+   TestEC2:
+      Type: AWS::EC2::Instance
+      Properties:
+         ImageId: !Ref EC2InstanceID
+         InstanceType: !Ref EC2InstanceType
+         KeyName: n.Viriginia
+         SecurityGroupIds:
+         - !Ref TestSG 
+         SubnetId: !Ref TestSybnetsPubVPC
+         Tags:
+         - Key: stack
+           Value: production
+   
+   TestEC2privet:
+      Type: AWS::EC2::Instance
+      Properties:
+         ImageId: !Ref EC2InstanceID
+         InstanceType: !Ref EC2InstanceType
+         KeyName: n.Viriginia
+         SecurityGroupIds:
+         - !Ref TestSG 
+         SubnetId: !Ref PrivateSubnet1
+         Tags:
+         - Key: stack
+           Value: production   
+   #TestS3:
+      #Type: AWS::S3::Bucket
+      #Properties:
+         #BucketName: !Ref IS3Bucket
+    
+   TestVPC:     
+       Type: AWS::EC2::VPC
+       Properties:
+        CidrBlock: !Ref VPCCIDR
+        EnableDnsSupport: 'true'
+        EnableDnsHostnames: 'true'
+        Tags:
+        - Key: stack
+          Value: production
+            
+ 
+   TestSybnetsPubVPC:
+       Type: AWS::EC2::Subnet
+       Properties:
+        VpcId: !Ref TestVPC
+        CidrBlock: !Ref VPCSUB
+        MapPublicIpOnLaunch: true
+        AvailabilityZone: "us-east-1a"
+        Tags:
+        - Key: stack
+          Value: production
+
+   
+   TestSG:
+       Type: AWS::EC2::SecurityGroup
+       Properties:
+        GroupDescription: SSIP
+        VpcId: !Ref TestVPC
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0  
+        SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0 
+
+   TestINGET:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+          Tags:
+          - Key: stack
+            Value: production
+            
+   TestAtachINGET:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+          VpcId: 
+            !Ref TestVPC
+          InternetGatewayId: 
+            !Ref TestINGET  
+
+            
+   PublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+          VpcId: 
+            !Ref TestVPC
+          Tags:
+          - Key: stack
+            Value: production
+            
+   PublicRoute:
+        Type: AWS::EC2::Route
+        Properties:
+          RouteTableId: 
+            !Ref PublicRouteTable
+          DestinationCidrBlock: 0.0.0.0/0
+          GatewayId: 
+            !Ref TestINGET       
+   ## publicksubnets 
+   PublicSubnet1RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+          SubnetId: !Ref TestSybnetsPubVPC
+          RouteTableId: !Ref PublicRouteTable
+   ##privetsubnet                
+   PrivateSubnet1:
+        Type: AWS::EC2::Subnet
+        Properties:
+          VpcId: !Ref TestVPC
+          AvailabilityZone: us-east-1b
+          CidrBlock: !Ref VPCSUBPrivet
+          MapPublicIpOnLaunch: false     
+  
+   ## NAT GATEWAY
+   NatGateway:
+        Type: AWS::EC2::NatGateway
+        DependsOn: NatPublicIP
+        Properties: 
+          SubnetId: !Ref TestSybnetsPubVPC
+          AllocationId: !GetAtt NatPublicIP.AllocationId
+
+      ## ELASTIC IP
+   NatPublicIP:
+        Type: AWS::EC2::EIP
+        DependsOn: TestVPC
+        Properties:
+          Domain: vpc
+
+    ## PRIVATE ROUTING
+   PrivateRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+          VpcId: !Ref TestVPC
+            
+   PrivateRoute:
+        Type: AWS::EC2::Route
+        Properties:
+          NatGatewayId: !Ref NatGateway
+          RouteTableId: !Ref PrivateRouteTable
+          DestinationCidrBlock: 0.0.0.0/0
+        
+   PrivateSubnet1RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+          SubnetId: !Ref PrivateSubnet1
+          RouteTableId: !Ref PrivateRouteTable
+     
+          
+   
