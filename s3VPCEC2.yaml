@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: This template for creation EC2,S3,VPC,Pubsab,Privetsub.
+Description: This template for creation EC2,S3,VPC,Pubsab,Privetsub,Nat
 
 Parameters:
   EC2InstanceID:
