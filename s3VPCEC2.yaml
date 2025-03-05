@@ -105,7 +105,7 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 195.160.232.0/22
-        SecurityGroupEgress:
+        #SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 0
           ToPort: 65535
